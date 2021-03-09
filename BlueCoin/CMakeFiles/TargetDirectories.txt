@@ -1,0 +1,9 @@
+/home/pi/BlueCoin/CMakeFiles/rebuild_cache.dir
+/home/pi/BlueCoin/CMakeFiles/BlueCoin.dir
+/home/pi/BlueCoin/CMakeFiles/edit_cache.dir
+/home/pi/BlueCoin/ASTSerialLib/CMakeFiles/rebuild_cache.dir
+/home/pi/BlueCoin/ASTSerialLib/CMakeFiles/ASTSerialLib.dir
+/home/pi/BlueCoin/ASTSerialLib/CMakeFiles/edit_cache.dir
+/home/pi/BlueCoin/AudioSerialLib/CMakeFiles/rebuild_cache.dir
+/home/pi/BlueCoin/AudioSerialLib/CMakeFiles/AudioSerialLib.dir
+/home/pi/BlueCoin/AudioSerialLib/CMakeFiles/edit_cache.dir

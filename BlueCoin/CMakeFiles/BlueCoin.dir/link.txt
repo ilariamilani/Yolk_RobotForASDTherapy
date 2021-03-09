@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/BlueCoin.dir/main.cpp.o CMakeFiles/BlueCoin.dir/BlueCoinController.cpp.o CMakeFiles/BlueCoin.dir/Exceptions.cpp.o -o BlueCoin  ASTSerialLib/libASTSerialLib.a AudioSerialLib/libAudioSerialLib.a 
