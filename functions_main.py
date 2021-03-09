@@ -1,4 +1,5 @@
 import serial
+import random
 from subprocess import run
 from audioplayer import PlayAudio
 
@@ -6,17 +7,18 @@ previous_action = "none"
 next_action = "none"
 state_user = ""
 current_action = "none"
+audio_list = ["sounds/Evviva.wav", "sounds/wow.wav", "sounds/SuonaConMe.wav", "sounds/CheBravo.wav"]
 
 
 def human_verification(angle_mean, user, count): #return if the object detected by sonar is a human
     #print("angle: " + str(angle_mean)+", User:" + user)
-    if (( user== "front") and ((angle_mean >= 155 ) and (angle_mean <= 205)) and (count >= 2)): # 180+-45
+    if (( user== "front") and ((angle_mean >= 165 ) and (angle_mean <= 195)) and (count >= 2)): # 180+-30
         print("Human front")
         tracking_a_user = True
-    elif (( user== "right") and (angle_mean <= 205) and (angle_mean >= 315)  and (count >= 2)): # 90+-45
+    elif (( user== "right") and (angle_mean <= 195) and (angle_mean >= 315)  and (count >= 2)): # 90+-
         print("human right")
         tracking_a_user = True
-    elif ((user == "left") and (angle_mean >= 45) and (angle_mean <= 155) and (count >= 2)): # 270+-45
+    elif ((user == "left") and (angle_mean >= 45) and (angle_mean <= 165) and (count >= 2)): # 270+-
         print("Human left")
         tracking_a_user = True
     else:
@@ -131,13 +133,19 @@ def reproduce_song(level, Nsong):
             PlayAudio().play("sounds/OraToccaAMe.wav")
         elif (Nsong == 6):
             PlayAudio().play("sounds/CantaConMe.wav")
+        elif (Nsong == 7):
+            PlayAudio().play("sounds/Sad_R2D2.wav")
+        elif (Nsong == 8):
+            # pick a random choice from a list of strings.
+            audio = random.choice(audio_list)
+            PlayAudio().play(audio)
     if (level == 1):
         if (Nsong == 0):
             PlayAudio().play("sounds/AttentiallaMusica1.wav")
         elif (Nsong == 1):
-            PlayAudio().play("sounds/tatittitata.wav")
+            PlayAudio().play("sounds/dindondan.wav")
         elif (Nsong == 2):
-            PlayAudio().play("sounds/tatittitata.wav")
+            PlayAudio().play("sounds/dindondan.wav")
         elif (Nsong == 3):
             PlayAudio().play("sounds/tichetà.wav")
         elif (Nsong == 4):
@@ -148,25 +156,25 @@ def reproduce_song(level, Nsong):
             PlayAudio().play("sounds/opopop.wav")
         elif (Nsong == 7):
             PlayAudio().play("sounds/founding.wav")
-            #PlayAudio().play("sounds/44Gatti.wav.waw")
+            #PlayAudio().play("sounds/44Gatti.wav.wav")
     elif (level == 2):
         if (Nsong == 0):
             PlayAudio().play("sounds/AttentiallaMusica2.wav")
         elif (Nsong == 1):
-            PlayAudio().play("sounds/Snappy_R2D2.wav")
+            PlayAudio().play("sounds/TwinkleTwinkleLittleStar.wav")
         elif (Nsong == 2):
-            PlayAudio().play("sounds/Snappy_R2D2.wav")
+            PlayAudio().play("sounds/TwinkleTwinkleLittleStar.wav")
         elif (Nsong == 3):
             PlayAudio().play("sounds/queen.wav")
         elif (Nsong == 4):
             PlayAudio().play("sounds/queen.wav")
         elif (Nsong == 5):
-            PlayAudio().play("sounds/queen.wav")
+            PlayAudio().play("sounds/BrillaBrillaStellina.wav")
         elif (Nsong == 6):
-            PlayAudio().play("sounds/queen.wav")
+            PlayAudio().play("sounds/BrillaBrillaStellina.wav")
         elif(Nsong == 7):
             PlayAudio().play("sounds/founding.wav")
-            #PlayAudio().play("sounds/PulcinoBallerino.waw")
+            #PlayAudio().play("sounds/PulcinoBallerino.wav")
     elif (level == 3):
         if (Nsong == 0):
             PlayAudio().play("sounds/AttentiallaMusica3.wav")
@@ -175,17 +183,14 @@ def reproduce_song(level, Nsong):
         elif (Nsong == 2):
             PlayAudio().play("sounds/GiroGiroTondo2.wav")
         elif (Nsong == 3):
-            PlayAudio().play("sounds/Snappy_R2D2.wav")
+            PlayAudio().play("sounds/fraMartino.wav")
         elif (Nsong == 4):
-            PlayAudio().play("sounds/Snappy_R2D2.wav")
+            PlayAudio().play("sounds/SuonaLeCampane.wav")
         elif (Nsong == 5):
-            PlayAudio().play("sounds/Snappy_R2D2.wav")
+            PlayAudio().play("sounds/vecchiaFattoria1.wav")
         elif (Nsong == 6):
-            PlayAudio().play("sounds/Snappy_R2D2.wav")
+            PlayAudio().play("sounds/vecchiaFattoria2.wav")
         elif (Nsong == 7):
             PlayAudio().play("sounds/founding.wav")
-            #PlayAudio().play("sounds/TartarugaSprint.waw")
-    
-        
-    
+            #PlayAudio().play("sounds/TartarugaSprint.wav")
     

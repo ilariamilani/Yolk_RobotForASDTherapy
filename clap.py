@@ -1,15 +1,16 @@
 class ClapAnalyzer:
-    def __init__(self, note_lengths, deviation_threshold=0.1):
+    def __init__(self, note_lengths, deviation_threshold=0.2):
         """
         :param note_lengths: Relative note lengths in the rhythmic pattern. F.ex. [2, 1, 1, 2, 2]
         :param deviation_threshold: How much deviation from the pattern should be considered failure
         :return:
         """
         self.buffer_size = len(note_lengths)
-        self.pattern = self.note_lengths_to_normalized_pauses(note_lengths)
+        self.pattern = self.note_lengths_to_normalized_pauses(note_lengths) # from [1/4, 1/8, 1/8, 1/4] to [2, 1, 1, 2, 2]
         self.pattern_sum = sum(self.pattern)
         self.min_pattern_time = .1 * self.pattern_sum  # min 100 ms between fastest clap in sequence
-        self.max_pattern_time = .5 * self.pattern_sum  # max 500 ms between fastest clap in sequence
+        self.max_pattern_time = 1.0 * self.pattern_sum  # max 500 ms between fastest clap in sequence
+        #self.max_pattern_time = .5 * self.pattern_sum  # max 500 ms between fastest clap in sequence
         self.clap_times = [None] * self.buffer_size
         self.deviation_threshold = deviation_threshold
         self.current_index = 0
@@ -44,7 +45,7 @@ class ClapAnalyzer:
         if first_clap_in_sequence is None:
             return  # waiting for more claps
 
-        time_diff = time - first_clap_in_sequence
+        time_diff = time - first_clap_in_sequence # time difference between the first and last note
         avg_time_per_clap_unit = time_diff / self.pattern_sum
         if self.min_pattern_time <= time_diff <= self.max_pattern_time:
             total_deviation = 0
@@ -54,6 +55,13 @@ class ClapAnalyzer:
                 relative_clap_time_diff = clap_time_diff / avg_time_per_clap_unit
                 total_deviation += (relative_clap_time_diff - self.pattern[j]) ** 2
                 j += 1
+
+            if self.buffer_size > 4:
+                self.deviation_threshold = 0.1
+            else:
+                self.deviation_threshold = 0.1
+            print("deviation_threshold =")
+            print(self.deviation_threshold)
 
             if total_deviation < self.deviation_threshold:
                 for fn in self.clap_sequence_listeners:

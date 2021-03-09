@@ -10,8 +10,8 @@ CHANNELS = 1
 RATE = 44100 # Record at 44100 samples per second
 CHUNK = 1024 * 2 # Number of samples in a chunk
 # this is the threshold that determines whether or not sound is detected
-THRESHOLD = 45
-LOW_THRESHOLD = 35
+THRESHOLD = 60 #45
+LOW_THRESHOLD = 55 #35
 
 
 class AudioActivity:
@@ -26,18 +26,28 @@ class AudioActivity:
         self.Nbeat = 0
         self.silence = 0
         self.elapsed_time = 0
+        self.other_activity = 0
         self.p = None
         self.stream = None
 
 
     def initialize_sequences(self):
-        self.sequence.append([1./4, 1./8, 1./8, 1./4, 1./4])
-        self.sequence.append([1./4, 1./4, 1./4, 1./8, 1./8])
-        self.sequence.append([1./4, 1./4, 1./8, 1./8, 1./4, 1./4, 1./4])
-        self.sequence.append([1./4, 1./8, 1./8, 1./4])
-        self.sequence.append([1./4, 1./4, 1./4, 2./4, 1./4, 1./4, 1./4, 2./4]) #giro giro tondo, fra martino, bella lavanderina?,
-        self.sequence.append([1./8, 1./8, 1./4, 1./8, 1./8, 1./4]) #ticchetà
-        self.sequence.append([1./4, 1./4, 2./4, 1./4, 1./4, 2./4]) #opopop
+        self.sequence.append([1./4, 1./4, 1./2, 1./4, 1./4, 1./2])  # dindondan                           0
+        self.sequence.append([1./8, 1./8, 1./4, 1./8, 1./8, 1./4])  # ticchetà                            1
+        self.sequence.append([1./8, 1./8, 1./4, 1./8, 1./8, 1./4])  # opopop                              2
+        self.sequence.append([1./4, 1./4, 1./4, 1./4, 1./4, 1./4, 1./2]) #twinkle twinkle                 3
+        self.sequence.append([1./4, 1./4, 1./2, 1./8, 1./8, 1./4, 1./4]) #queen                           4
+        self.sequence.append([1./8, 1./6, 1./8, 1./6, 1./8, 1./6, 1./4]) # brilla brilla stellina         5
+        self.sequence.append([1./6, 1./6, 1./6, 1./6, 1./6, 1./6, 1./6, 1./6]) #giro giro tondo           6
+        #self.sequence.append([1./4, 1./4, 1./4, 1./4, 1./4, 1./4, 1./4, 1./4]) #giro giro tondo
+        self.sequence.append([1./4, 1./4, 1./4, 1./4, 1./4, 1./4, 1./2, 1./4, 1./4, 1./2]) #fra martino   7
+        self.sequence.append([1./4, 1./4, 1./4, 1./4, 1./4, 1./4, 1./4]) #vecchia fattoria                8
+
+
+
+        self.sequence.append([1./6, 1./6, 1./4, 1./6, 1./6, 1./6]) # ci vuole un fiore                    9
+        self.sequence.append([1./4, 1./8, 1./8, 1./4, 1./4])  #tatititata                                 10
+        # fra martino, bella lavanderina?
 
 
     def start(self, id):
@@ -65,7 +75,7 @@ class AudioActivity:
     def choice_sequence(self, id):
         self.actual_sequence = ClapAnalyzer(
             self.sequence[id],
-            deviation_threshold=0.1
+            deviation_threshold=0.2
         )
         self.actual_sequence.on_clap_sequence(self.on_sequence_detected)
 
@@ -119,6 +129,7 @@ class AudioActivity:
                     self.Nbeat += 1
                     self.silence = 0
                 if self.silence == 0 and self.noise >= 10:
+                    self.other_activity += 1
                     print("other activity is detected")
         elif decibel < LOW_THRESHOLD:
             self.silence += 1

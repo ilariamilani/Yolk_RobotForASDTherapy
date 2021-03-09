@@ -1,11 +1,17 @@
-```
 # main_program.py
 
-This is the script that actually implement all the control loop designed for the behavior of the robot.
+This is the script that implements all the control loop designed for the behavior of the robot.
 
 During the script, if you are in the INTERACTION LOOP, you can simulate the actions that the child could do with the robot.
 
 Press: 'a' -> Touch, 's' -> push, 'd' -> hit, 'f' -> hug, 'g' -> strongHug, 'h' -> none, 'j' -> MusicalActivity.
+
+Here the acquisition of data from BlueCoin - from main.cpp is performed.
+
+## BlueCoin
+
+It manages the the ST BlueCoin sensor, a directional microphone.
+Credits shared with Lorenzo Bonetti.
 
 ## AudioActivity.py
 
@@ -14,6 +20,7 @@ Recognition of the beat time.
 
 ## Clap.py
 
+Credits to iver56/clap-detection.
 Compare the elapsed time of the beats performed by the child with the set frame and recognizes if it corresponds to the beat
 timing of the expected song.
 

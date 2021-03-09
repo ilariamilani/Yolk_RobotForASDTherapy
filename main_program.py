@@ -2,30 +2,17 @@
 
 import argparse
 import sys
-#import cv2
-import time
-import numpy as np
-import math
-import subprocess
 import os
-
-from AudioActivity import AudioActivity
+import time
+import subprocess
 from datetime import datetime
-from threading import Thread
+from AudioActivity import AudioActivity
 from audioplayer import PlayAudio
-
-#from edgetpu.basic import edgetpu_utils
-#from pose_engine import PoseEngine
-#from finalmodel import prepare_modelSingle
-#from openvino.inference_engine import IECore
-#from detector import Detector
 from pynput import keyboard
-
 import functions_main
 import connections_arduinos as arduino #new_user_fun
-
-
 import logging
+
 logging.basicConfig(format="[ %(levelname)s ] %(message)s",
                     level=logging.INFO,
                     stream=sys.stdout)
@@ -98,8 +85,14 @@ def on_release(key):
         child_action = "QUIT"
         MusicalActivity = False
     print("Child action: " + child_action)
-    
-    
+
+child_action = " "
+MusicalActivity = False
+receiveAction = False
+breakFromKey = False
+listener = keyboard.Listener(on_press = on_press, on_release = on_release)
+listener.start()
+
 class suppress_stdout_stderr(object):
     '''
     A context manager for doing a "deep suppression" of stdout and stderr in
@@ -108,7 +101,6 @@ class suppress_stdout_stderr(object):
        This will not suppress raised exceptions, since exceptions are printed
     to stderr just before a script exits, and after the context manager has
     exited (at least, I think that is why it lets exceptions through).
-
     '''
 
     def __init__(self):
@@ -130,50 +122,19 @@ class suppress_stdout_stderr(object):
         for fd in self.null_fds + self.save_fds:
             os.close(fd)
 
-
-
-
-
-child_action = " "
-MusicalActivity = False
-receiveAction = False
-breakFromKey = False
-listener = keyboard.Listener(on_press = on_press, on_release = on_release)
-listener.start()
-
-
 with suppress_stdout_stderr():
-    
+
     def run_demo(args):
-        
+
         time.sleep(2)
         arduino.new_user_function()
-        
-        functions_main.send_uno_lights(arduino.ser1,"none") 
+
+        functions_main.send_uno_lights(arduino.ser1,"none")
         functions_main.send_uno_lights(arduino.ser1, "move")
-        
-        #Setting communications  
 
-    ##CAM    model_width   = 640
-    ##CAM    model_height  = 480
-    ##CAM   labels definition
-
-    ##CAM    devices = edgetpu_utils.ListEdgeTpuPaths(edgetpu_utils.EDGE_TPU_STATE_UNASSIGNED)
-    ##CAM    engine = PoseEngine(args.model_hpe, devices[0])
-
-    ##CAM    ie = IECore()
-    ##CAM    detector_object = Detector(ie, path_to_model_xml=args.model_od, device=args.device, label_class=args.person_label)
-
-    ##CAM    model_gaze.load_weights('/home/pi/Detection-and-Human-Pose-Estimation---RASPBERRY/models/trainedOnGazeFollow_weights.h5')
-
-        #Framerate variables
-        fps = ""
-        
         #Human Interaction variables
         TIME_OUT = 40 # How much time do i have if i'm searching a human during the interaction loop?
-        TIME_OUT_HUM = 10 # How much time can I stay without human?
-        MA_TIME = 30 #duration of MA task analisys
-        child_action_prec = "none"
+        TIME_OUT_HUM = 30 # How much time can I stay without human?
         tracking_a_user = False #is the obstacle i read from sonar an human?
         Finding_human = False #am i looking for a human?
         global receiveAction
@@ -193,16 +154,19 @@ with suppress_stdout_stderr():
         tooFarCount = 0
         NSongIdentified = 0
         waitingForSounds = 0
-        NSongsinLevel = 7 # number of songs in a level
-        MA_interactionLevel = 0 #contains the audios for interaction in MA
-        start_acquisition = 0
-        
-        
+        NSongsinLevel = 7  # number of songs in a level
+        MA_interactionLevel = 0  # contains the audios for interaction in MA
+        answerTime = 9.0 # minimum time given to reproduce a song
+        TIME_OUT_song = 12.0 # maximum time given to reproduce a song
+        angle_acquisition = 0
+        identification_time = 0
+
+
         #--> Counting the time that manages the reseach of a human
         time_out_system = 0
         start_time_out_system = 0
         current_time_out_system = 0
-        
+
         #--> Counting the time of interaction
         time_out_system_hum = 0
         start_time_out_system_hum = 0
@@ -212,62 +176,42 @@ with suppress_stdout_stderr():
         start_time_MA = 0
         duration_MA = 0
         actual_time_MA = 0
-        
-        start_time_TOLERANCE = 0 
-        duration_TOLERANCE = 0
-        actual_time_TOLERANCE = 0
-        
 
-        #ciao sono Yolk!
-        #PlayAudio().play("sounds/Giochiamo.wav")
-        functions_main.send_uno_lights(arduino.ser1,"none")
-    
-    
+
         while True:
-            
+
             t1 = time.perf_counter()
-                    
+
             arduino.new_user_function() #Connect with the Mega and obtain data from sensors
-       
+
             # Run Object Detection
-            echo = 0
-            prevpreviousAngle = previousAngle
-            previousAngle = angle
-            prevMeanAngle = meanAngle
-            
-            #ANGLE from BlueCoin
-            #subprocess2 = subprocess.Popen("/home/pi/BlueCoin/BlueCoin",shell=True, stdout=subprocess.PIPE)
-            #subprocess_return = subprocess2.stdout.read()
-            #returnvalue = subprocess_return.decode("utf-8")
-            #beg = returnvalue.find("##ANGLE##")
-            #end = returnvalue.find("##", beg+9)
-            #stringangle = returnvalue[beg+9 : end]
-            #print("result")
-            #print(subprocess_return)
-            #print(stringangle)
-            #angle = int(stringangle)
-            #print (angle)    
-            #angle = 180
-            
-            #ANGLE from BlueCoin
-            subprocess2 = subprocess.Popen("/home/pi/BlueCoin/BlueCoin",shell=True, stdout=subprocess.PIPE)
-            subprocess_return = subprocess2.stdout.read()
-            returnvalue = subprocess_return.decode("utf-8")
-            beg = returnvalue.find("##ANGLE##")
-            end = returnvalue.find("##", beg+9)
-            stringangle = returnvalue[beg+9 : end]
-            #print("result")
-            #print(subprocess_return)
-            #print(stringangle)
-            angle = int(stringangle)
-            print ("angle from BlueCoin= ")
-            print (angle)
+            angle_acquisition = 0
+            while angle_acquisition < 3:
+                angle_acquisition += 1
+                echo = 0
+                prevpreviousAngle = previousAngle
+                previousAngle = angle
+                #ANGLE from BlueCoin
+                subprocess2 = subprocess.Popen("/home/pi/BlueCoin/BlueCoin", shell=True, stdout=subprocess.PIPE)
+                subprocess_return = subprocess2.stdout.read()
+                returnvalue = subprocess_return.decode("utf-8")
+                beg = returnvalue.find("##ANGLE##")
+                end = returnvalue.find("##", beg + 9)
+                stringangle = returnvalue[beg + 9: end]
+                #print("result")
+                #print(subprocess_return)
+                #print(stringangle)
+                angle = int(stringangle)
+                print("angle from BlueCoin=  {:.1f}".format(angle) )
 
             # check for voice's direction and echo
+            prevMeanAngle = meanAngle
             if angle < 0 and (previousAngle >= 0 or prevpreviousAngle >= 0):
                 if previousAngle >= 0 and prevpreviousAngle >= 0:
                     if abs(previousAngle - prevpreviousAngle) < 100:
                         meanAngle = (previousAngle + prevpreviousAngle) // 2
+                    elif ((previousAngle <= 45) and (previousAngle >= 315) and (prevpreviousAngle <= 45) and (prevpreviousAngle >= 315)): #if back
+                        meanAngle = 1 #random number on the back
                     else:
                         echo = 1
                         soundDirection = "ECHO"
@@ -280,7 +224,9 @@ with suppress_stdout_stderr():
             elif angle >= 0:
                 if previousAngle >= 0 and prevpreviousAngle >= 0:
                     if (abs(previousAngle - prevpreviousAngle) + abs(angle - prevpreviousAngle) + abs(previousAngle - angle)) < 200:
-                        meanAngle = (previousAngle + prevpreviousAngle) // 2
+                        meanAngle = (angle + previousAngle + prevpreviousAngle) // 3
+                    elif ((angle <= 45) and (angle >= 315) and (previousAngle <= 45) and (previousAngle >= 315) and  (prevpreviousAngle <= 45) and (prevpreviousAngle >= 315)): #if back
+                        meanAngle = 1 #random number on the back
                     else:
                         echo = 1
                         soundDirection = "ECHO"
@@ -289,6 +235,8 @@ with suppress_stdout_stderr():
                 elif previousAngle >= 0 and prevpreviousAngle < 0:
                     if abs(previousAngle - angle) < 100:
                         meanAngle = (previousAngle + angle) // 2
+                    elif ((previousAngle <= 45) and (previousAngle >= 315) and  (angle <= 45) and (angle >= 315)): #if back
+                        meanAngle = 1 #random number on the back
                     else:
                         echo = 1
                         soundDirection = "ECHO"
@@ -297,6 +245,8 @@ with suppress_stdout_stderr():
                 elif previousAngle < 0 and prevpreviousAngle >= 0:
                     if abs(angle - prevpreviousAngle ) < 100:
                         meanAngle = (angle + prevpreviousAngle) // 2
+                    elif ((prevpreviousAngle <= 45) and (prevpreviousAngle >= 315) and  (angle <= 45) and (angle >= 315)): #if back
+                        meanAngle = 1 #random number on the back
                     else:
                         echo = 1
                         soundDirection = "ECHO"
@@ -311,11 +261,11 @@ with suppress_stdout_stderr():
             print("meanAngle: {:.1f}".format(meanAngle))
 
             if ((echo == 0) and (meanAngle >= 0)):
-               if ((meanAngle >= 160 ) and (meanAngle <= 200)): # sounds from the front
+               if ((meanAngle >= 165 ) and (meanAngle <= 195)): # sounds from the front
                    soundDirection = "FRONT"
-               elif ((meanAngle <= 200) and (meanAngle >= 315)): # sounds from the right
+               elif ((meanAngle <= 195) and (meanAngle >= 315)): # sounds from the right
                    soundDirection = "RIGHT"
-               elif ((meanAngle >= 45) and (meanAngle <= 160)): # sounds from the left
+               elif ((meanAngle >= 45) and (meanAngle <= 165)): # sounds from the left
                    soundDirection = "LEFT"
                elif (((meanAngle >= 315) and (meanAngle <= 45))): # sounds from the back
                    soundDirection = "BACK"
@@ -325,38 +275,46 @@ with suppress_stdout_stderr():
 
             ####-----START HUMAN INTERACTION-----####
             count = 0
-            
+
             #arduino.new_user_function() #Connect with the Mega and obtain data from sensors
-                        
+
             #interaction = 0 or interaction=1 is when the system is trying to estabilish an interaction with the child
             #interaction = 2 is when the robot is already interacting with the human
 
             if MusicalActivity:
+                # explaination of the activity
                 time_out_system_hum = 0
                 TOTSongsIdentified = 0
                 start_time_MA = time.time()
                 print("Musical Activity")
                 Nid = 0
-                answerTime = 8.0
                 ActivityLevel = 1
                 while ActivityLevel < 4:
                     song = 0
-                    functions_main.reproduce_song(ActivityLevel, song) #Attenti alla musica!
+                    functions_main.send_uno_lights(arduino.ser1, "excited_attract") # random lights
+                    functions_main.reproduce_song(ActivityLevel, song)  # Attenti alla musica!
                     NSongIdentified = 0
+                    if ActivityLevel == 1:
+                        answerTime -= 3.0
+                        TIME_OUT_song -= 3.0
+                    else:
+                        answerTime = 9.0
+                        TIME_OUT_song = 12.0
                     while song < NSongsinLevel:
                         song += 1
                         if song == NSongsinLevel:
                             print("end of level")
                             break
-                        if (((song % 2) != 0) and (song != NSongsinLevel)): #every time a new song is played (odd number)(every song is reproduced twice)
-                            functions_main.reproduce_song(MA_interactionLevel, 0) #suona con me!
-                        if song == NSongsinLevel:
-                            functions_main.reproduce_song(MA_interactionLevel, 6)  # canta con me!
-                        if song == 2:
-                            functions_main.reproduce_song(MA_interactionLevel, 5)  # ora tocca a me!
-                        functions_main.reproduce_song(ActivityLevel, song) # reproducing the song
-                        if song == 1:
-                            functions_main.reproduce_song(MA_interactionLevel, 4) #tocca a te!
+                        if (song % 2) != 0:  # every time a new song is played (odd number)(every song is reproduced twice)
+                            functions_main.send_uno_lights(arduino.ser1, "excited_attract") # random lights
+                            functions_main.reproduce_song(MA_interactionLevel, 0)  # suona con me!
+                        #if song == 2:
+                        functions_main.send_uno_lights(arduino.ser1, "angry") # red lights
+                        functions_main.reproduce_song(MA_interactionLevel, 5)  # ora tocca a me!
+                        functions_main.reproduce_song(ActivityLevel, song)  # reproducing the song
+                        #if song == 1:
+                        functions_main.send_uno_lights(arduino.ser1, "interested_excited") # green lights
+                        functions_main.reproduce_song(MA_interactionLevel, 4)  # tocca a te!
                         # BEAT RECOGNITION
                         activity = AudioActivity()
                         activity.start(id=Nid)
@@ -364,78 +322,89 @@ with suppress_stdout_stderr():
                         print(Nid)
                         if (song % 2) != 0:  # every time a new song is played (odd number)(every song is reproduced twice)
                             Nid += 1
-                        while activity.elapsed_time < answerTime or activity.silence < 40: #definesongtime #wait in case the child is still playing
+                        while ((activity.elapsed_time < answerTime or activity.silence < 15) and activity.elapsed_time < TIME_OUT_song): #wait in case the child is still playing (making noises)
                             time.sleep(1.0)
                             if activity.sequence_identified > 0:
                                 print("Bravoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo")
-                                functions_main.send_uno_lights(arduino.ser1, "happy")
+                                functions_main.send_uno_lights(arduino.ser1, "happy") #rainbow lights
                                 NSongIdentified += 1
-                                activity.sequence_identified = 0
-                                time.sleep(1.5)
+                                time.sleep(1.0)
+                                identification_time = time.perf_counter()
                                 break
-                            #else:
-                                #print("Niente")
-                        while activity.silence < 15:  #wait in case the child is still playing
-                            continue
+                        if activity.sequence_identified > 0:
+                            while activity.silence < 15 and (identification_time + 1.5 > activity.elapsed_time):  # wait in case the child is still playing
+                                continue
                         activity.stop()
-                        if ( ((song % 2) == 0) and (NSongIdentified > 0)): #at least 1 song over 2 has been correctly reproduced
-                            functions_main.reproduce_song(MA_interactionLevel, 2) #wow evviva!
-                            functions_main.send_uno_lights(arduino.ser1, "happy")
+                        #reaction of the robot to the 2 songs just performed
+                        if (((song % 2) == 0) and (NSongIdentified > 0)):  # at least 1 song over 2 has been correctly reproduced
+                            functions_main.send_uno_lights(arduino.ser1, "happy") #rainbow lights
+                            functions_main.reproduce_song(MA_interactionLevel, 2)  # wow evviva!
                             functions_main.send_initial_action_arduino("happy", arduino.ser, "none")
+                        if (activity.sequence_identified == 0) and (activity.other_activity > 20 or activity.Nbeat < 3):
+                            print("the child is not performing the activity")
+                            functions_main.reproduce_action_sound("sad")
+                            functions_main.reproduce_song(MA_interactionLevel, 7)  # sad :(
+                            functions_main.send_uno_lights(arduino.ser1, "sad") # blue lights
+                            #  functions_main.send_initial_action_arduino("sad", arduino.ser, "none")????
                         print(".")
                         print("next song in the same level")
                         print(".")
+                        activity.sequence_identified = 0
                     # LEVEL CONCLUDED: checking for results. if 50% of the activity is correct: next level. else: repeat the level
-                    if (song == NSongsinLevel): #end of the level
-                        if NSongIdentified >= 3: #50% correct ((NSongsinLevel - 1) / 2)
+                    if (song == NSongsinLevel):  # end of the level
+                        if NSongIdentified >= ((NSongsinLevel - 1) // 2):  # 50% correct
                             print(".")
                             print("yeeeeeeeeeeeeeyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy ready fot the next level")
                             print(".")
                             functions_main.reproduce_song(MA_interactionLevel, 1)  # wow, bravo! reproduced when the level has been passed
-                            functions_main.send_uno_lights(arduino.ser1, "happy")
+                            functions_main.send_uno_lights(arduino.ser1, "happy") #rainbow lights
                             functions_main.send_initial_action_arduino("happy", arduino.ser, "none")
-                            functions_main.reproduce_song(ActivityLevel, song)
-                            ActivityLevel += 1 #next level
+                            functions_main.reproduce_song(MA_interactionLevel, 6) # canta con me!
+                            functions_main.send_uno_lights(arduino.ser1, "happy") #rainbow lights
+                            functions_main.reproduce_song(ActivityLevel, song) # long song
+                            ActivityLevel += 1  # next level
                         else:
                             print(".")
                             print("well well riproviamooo")
                             print(".")
-                            functions_main.reproduce_song(MA_interactionLevel, 3)  # riproviamo
+                            functions_main.send_uno_lights(arduino.ser1, "sad")  # blue lights
+                            functions_main.reproduce_action_sound("sad")
+                            functions_main.send_uno_lights(arduino.ser1, "excited_attract") # random lights
+                            functions_main.send_initial_action_arduino("interested_excited", arduino.ser, "none") #or excited_attract ?
+                            functions_main.reproduce_song(MA_interactionLevel, 3)  # riproviamo?
                             # if the child was not able to pass to the next level, the same will be reproposed
                             Nid -= ((NSongsinLevel - 1) // 2)
                         TOTSongsIdentified = TOTSongsIdentified + NSongIdentified
-                    song += 1
-                    functions_main.reproduce_song(ActivityLevel, song)
-                    
+
                     actual_time_MA = time.time()
                     duration_MA = duration_MA + (actual_time_MA - start_time_MA)
                     start_time_MA = actual_time_MA
-                    print("Time MA: {:.1f}".format(duration_MA)) #the duration of each level of the activity 
-            else:
+                    print("Time MA: {:.1f}".format(duration_MA))  # the duration of each level of the activity
+
+                functions_main.send_uno_lights(arduino.ser1, "happy")
+                # thank you for playing with me
+                functions_main.send_initial_action_arduino("happy", arduino.ser, "none")
+
                 if duration_MA != 0:
                     now = datetime.now()
                     dt_string = now.strftime("%d/%m/%y %H:%M:%S")
                     data = dt_string + ',' + str(duration_MA) + ',' + str(TOTSongsIdentified) + '\n'
-                    with open('records.csv','a') as fp:
+                    with open('records.csv', 'a') as fp:
                         print("Record stored successfully")
-                        fp.write(data)   
+                        fp.write(data)
                 duration_MA = 0
                 NSongIdentified = 0
-                        
-            #at the beginning of the program, before starting to find the user, I need to acquire at least 4 data from the directional microphone
-            if start_acquisition < 3:
-                start_acquisition += 1
-            elif interaction != 2 and not MusicalActivity: #If I'm not interacting with the human
+
+
+            if interaction != 2 and not MusicalActivity: #If I'm not interacting with the human
                 print("Interaction != 2, I'm not interacting with the human")
                 if arduino.old_user != "none": #if an object is detected by the sonar, check if it is a human
-                    print("Object detected by sonars")                              
-                    if ((meanAngle >= 0) or (prevMeanAngle >= 0) or (soundDirection == "ECHO")): # voice detected by BlueCoin
+                    print("Object detected by sonars")
+                    if ((meanAngle >= 0) or (prevMeanAngle >= 0) or (soundDirection == "ECHO")):  # voice detected by BlueCoin
                         print("Human detected in the FOV")
                         count = 4
                         if meanAngle >= 0:
                             tracking_a_user = functions_main.human_verification(meanAngle, arduino.old_user, count)  # it check if obstacle detected from sonar is a human
-                        elif prevMeanAngle >= 0: # voice detected in the previous cycle
-                            tracking_a_user = functions_main.human_verification(prevMeanAngle, arduino.old_user, count)  # it check if obstacle detected from sonar is a human
                         elif soundDirection == "ECHO": # check which one of the angle detected corresponds to what the sonar found
                             tracking_a_user = functions_main.human_verification(angle, arduino.old_user, count) #it check if obstacle detected from sonar is a human
                             if tracking_a_user == False:
@@ -450,7 +419,6 @@ with suppress_stdout_stderr():
                             ##if the human is free for few instant
                             interaction = 2
                             start_time_out_system_hum = time.time()
-                            functions_main.reproduce_action_sound("excited")
                             #THERE IS A HUMAN READY TO INTERACT WITH!
                             Finding_human = False
                         else: #if it finds an object that is not a human (angle sonar != angle BlueCoin), it must rotate until that obstacle is an human (in the angle s direction)
@@ -460,9 +428,9 @@ with suppress_stdout_stderr():
                                 functions_main.send_uno_lights(arduino.ser1, "move")
                                 functions_main.send_initial_action_arduino("move", arduino.ser, "move")
                             elif (soundDirection == "RIGHT"):
-                                    print("Human detected in right position...")
-                                    functions_main.send_uno_lights(arduino.ser1, "rotateRight")
-                                    functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
+                                print("Human detected in right position...")
+                                functions_main.send_uno_lights(arduino.ser1, "rotateRight")
+                                functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
                             elif (soundDirection == "LEFT"):
                                 print("Human detected in left position...")
                                 functions_main.send_uno_lights(arduino.ser1, "rotateLeft")
@@ -471,7 +439,7 @@ with suppress_stdout_stderr():
                                 print("Human detected in back position...")
                                 functions_main.send_uno_lights(arduino.ser1, "rotateRight")
                                 functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
-                                functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none") #rifare gira a dx 2 volte????????????????????????????????????????????????????????????????????????????????????????????????????
+                                functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
                     else : #if there is no human (no angle from BlueCoin), but object detected from sonar
                         #GET CLOSER TO THE OBJECT! maybe the child is to far for the BlueCoin to detect his voice
                         if arduino.new_dist > 120.0:  # if the distance to the chld is bigger than , get closer
@@ -480,7 +448,7 @@ with suppress_stdout_stderr():
                             print("Is the user too far?")
                         else: #the user might be in front of the robot but silent, encourage to make sounds and wait
                             if waitingForSounds < 3:
-                                if waitingForSounds == 0:
+                                if waitingForSounds == 0: # dai fatti sentire!
                                     functions_main.send_uno_lights(arduino.ser1, "excited_attract")
                                     functions_main.send_initial_action_arduino("excited_attract", arduino.ser, "excited_attract")
                                 waitingForSounds += 1
@@ -498,21 +466,21 @@ with suppress_stdout_stderr():
                             functions_main.send_uno_lights(arduino.ser1, "move")
                             functions_main.send_initial_action_arduino("move", arduino.ser, "move")
                         elif (soundDirection == "RIGHT"):
-                                print("Searching right...")
-                                functions_main.send_uno_lights(arduino.ser1, "rotateRight")
-                                functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
+                            print("Searching right...")
+                            functions_main.send_uno_lights(arduino.ser1, "rotateRight")
+                            functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
                         elif (soundDirection == "LEFT"):
                             print("Searching left...")
                             functions_main.send_uno_lights(arduino.ser1, "rotateLeft")
                             functions_main.send_initial_action_arduino("rotateLeft", arduino.ser, "none")
                         elif (soundDirection == "BACK"):
-                                print("Searching back...")
-                                functions_main.send_uno_lights(arduino.ser1, "rotateRight")
-                                functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
-                                functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none") #rifare gira a dx 2 volte????????????????????????????????????????????????????????????????????????????????????????????????????
+                            print("Searching back...")
+                            functions_main.send_uno_lights(arduino.ser1, "rotateRight")
+                            functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
+                            functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
                     else: #if there is no human: no sounds perceived from BlueCoin
                         if waitingForSounds < 3:
-                            if waitingForSounds == 0:
+                            if waitingForSounds == 0: # dai fatti sentire!
                                 functions_main.send_uno_lights(arduino.ser1, "excited_attract")
                                 functions_main.send_initial_action_arduino("excited_attract", arduino.ser, "excited_attract")
                             waitingForSounds += 1
@@ -526,10 +494,10 @@ with suppress_stdout_stderr():
                 if time_out_system_hum > TIME_OUT_HUM: #If there is no human for too long
                     print("INTERACTION LOOP - I've lost contact with the human")
                     Finding_human = True # Am i looking for a human?
-                    time_out_system = 0 
+                    time_out_system = 0
                     start_time_out_system = time.time()
                     time_out_system_hum = 0
-                elif time_out_system_hum <= TIME_OUT_HUM and time_out_system<TIME_OUT and Finding_human == False: 
+                elif time_out_system_hum <= TIME_OUT_HUM and time_out_system<TIME_OUT and Finding_human == False:
                     print("INTERACTION LOOP - Preparing the interaction")
                     #If there is a human interacting and i'm inside the timeout
                     time_out_system = 0
@@ -555,10 +523,10 @@ with suppress_stdout_stderr():
                                 print("INTERACTION LOOP - Child is on the back ")
                                 functions_main.send_uno_lights(arduino.ser1, "rotateRight")
                                 functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
-                                functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none") #rifare gira a dx 2 volte????????????????????????????????
+                                functions_main.send_initial_action_arduino("rotateRight", arduino.ser, "none")
                             elif ((soundDirection == "NONE") or (soundDirection == "ECHO")): #if no sounds perceived from BlueCoin
                                 if waitingForSounds < 3:
-                                     if waitingForSounds == 0:
+                                     if waitingForSounds == 0: # dai fatti sentire!
                                          functions_main.send_uno_lights(arduino.ser1, "excited_attract")
                                          functions_main.send_initial_action_arduino("excited_attract", arduino.ser, "excited_attract")
                                      waitingForSounds += 1
@@ -575,7 +543,7 @@ with suppress_stdout_stderr():
                             functions_main.send_initial_action_arduino("scared", arduino.ser, "move_find")
                             tooCloseCount = 0
                     else: #if it's closer than 1.5m perform the interaction loop normally and select action of the child (child_action)
-                        # Run Object Detection. I start now the timer for human time out because else comprehend 20 < dist 130 AND dist = Max dist, so no object sensed by the sonar
+                        # Run Object Detection. I start now the timer for human time out because else comprehend no object sensed by the sonar
                         tooCloseCount = 0
                         tooFarCount = 0
                         current_time_out_system_hum = time.time()
@@ -585,15 +553,19 @@ with suppress_stdout_stderr():
                             time_out_system_hum = 0
                         if (soundDirection == "RIGHT"):
                             lookTo = "rotateRight"
+                            time_out_system_hum = time_out_system_hum + 22
                         elif (soundDirection == "LEFT"):
                             lookTo = "rotateLeft"
+                            time_out_system_hum = time_out_system_hum + 22
                         elif (soundDirection == "BACK"):
                             lookTo = "rotateRight"
+                            time_out_system_hum = time_out_system_hum + 22
                         print("INTERACTION LOOP - Correctly interacting, waiting to receive an action")
+
                         if firstTime:
-                                functions_main.send_uno_lights(arduino.ser1,"excited_attract")
-                                functions_main.send_initial_action_arduino("excited_attract", arduino.ser, "excited_attract")
-                                firstTime = False
+                            functions_main.send_uno_lights(arduino.ser1,"excited_attract")
+                            functions_main.send_initial_action_arduino("excited_attract", arduino.ser, "excited_attract")
+                            firstTime = False
                         if receiveAction:
                             if child_action != "joint":
                                 functions_main.decide_action(child_action) #decide robot behaviour based on action of the child and movement of the robot
@@ -615,37 +587,32 @@ with suppress_stdout_stderr():
                     time_out_system = time_out_system+(current_time_out_system-start_time_out_system)
                     start_time_out_system = current_time_out_system
                     print("Time out: {:.1f} / 40 ".format(time_out_system))
-                    
+
                     if ((meanAngle >= 0) or (soundDirection == "ECHO")):  # this can be replaced with a check if it is human, so this translate to if there is a human
                         print("INTERACTION LOOP - Human detected in the FOV")
                         Finding_human = False
                         functions_main.send_uno_lights(arduino.ser1, "excited_attract")
                         functions_main.send_initial_action_arduino("excited_attract", arduino.ser, "excited_attract")
-                        time_out_system_hum = 0   
-                        time_out_system = 0                     
+                        time_out_system_hum = 0
+                        time_out_system = 0
                     else:
-                        if waitingForSounds < 3:
-                            waitingForSounds += 1
                         print("INTERACTION LOOP - Searching")
                         functions_main.send_uno_lights(arduino.ser1, "none")
                         functions_main.send_initial_action_arduino(lookTo, arduino.ser, "none")
                 elif Finding_human == True and time_out_system>TIME_OUT: #If 'm looking for the children and i run out of time
                     print("Terminating the program")
                     child_action = "QUIT"
-                    
+
             ####-----END HUMAN INTERACTION----####
-            
-    ##CAM        oldTargetBox = targetBox.copy()
-            
-            t2 = time.perf_counter()  
-            elapsedTime = t2-t1      
-            fps = 1/elapsedTime      
+            t2 = time.perf_counter()
+            elapsedTime = t2-t1
+            fps = 1/elapsedTime
             i=0
-           
+
             if args.no_show:
                 print("Cicli al secondo: {:.1f} ".format(float(fps)))
                 continue
-                    
+
             if child_action == "QUIT": # it saves the duration of the activity and the number of songs correctly reproduced by the child
                 functions_main.send_uno_lights(arduino.ser1, "none")
                 if duration_MA != 0 and NSongIdentified != 0:
@@ -654,13 +621,10 @@ with suppress_stdout_stderr():
                     data = dt_string + ',' + str(duration_MA) + ',' + str(NSongIdentified) + '\n'
                     with open('records.csv','a') as fp:
                         print("Record stored successfully")
-                        fp.write(data)  
+                        fp.write(data)
                 break
-            
-
-            
-            
-        #datas.stop()
+        
+    #datas.stop()
 
 if __name__ == "__main__":
     args = build_argparser().parse_args()
